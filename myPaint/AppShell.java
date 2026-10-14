@@ -3,6 +3,7 @@ package myPaint;
 import myPaint.controls.MouseListener;
 import myPaint.userTools.BrushTool;
 import myPaint.userTools.HandTool;
+import myPaint.userTools.SelectionTool;
 import myPaint.utils.ToolType;
 import myPaint.utils.VersionNumber;
 
@@ -47,9 +48,13 @@ public class AppShell extends Application {
 
     private static final double CANVAS_WIDTH = 1060;
     private static final double CANVAS_HEIGHT = 740;
+    private static final String SMALL_LABEL_STYLE = "-fx-font-size: 11px; -fx-text-fill: #374151;";
+    private static final String SQUARE_LABEL = "Square";
+    private static final String FREE_SELECTION_LABEL = "Free";
 
     private Stage primaryStage;
     private BrushTool brushTool;
+    private SelectionTool selectionTool;
     private MouseListener mouseListener;
     private Label toolStatus;
     private ToolType activeTool = ToolType.NONE;
@@ -140,7 +145,11 @@ public class AppShell extends Application {
         settingsPanels.put(ToolType.BRUSH, brushSettingsPanel);
         hideAllSettings();
 
-        sidebar.getChildren().addAll(toolsTitle, toolButtonGroup, brushSettingsPanel);
+        VBox selectionSettingsPanel = createSelectionToolPanel();
+        settingsPanels.put(ToolType.SELECT, selectionSettingsPanel);
+        hideAllSettings();
+
+        sidebar.getChildren().addAll(toolsTitle, toolButtonGroup, brushSettingsPanel, selectionSettingsPanel);
         return sidebar;
     }
 
@@ -172,7 +181,7 @@ public class AppShell extends Application {
         });
 
         Label sizeLabel = new Label("Size");
-        sizeLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #374151;");
+        sizeLabel.setStyle(SMALL_LABEL_STYLE);
 
         Slider sizeSlider = new Slider(1, 50, 4);
         sizeSlider.setPrefWidth(120);
@@ -186,9 +195,11 @@ public class AppShell extends Application {
         });
 
         Label variantLabel = new Label("Variant");
-        variantLabel.setStyle("-fx-font-size: 11px; -fx-text-fill: #374151;");
+        variantLabel.setStyle(SMALL_LABEL_STYLE);
 
-        ComboBox<String> variantBox = new ComboBox<>(FXCollections.observableArrayList("Round", "Square", "Soft"));
+        ComboBox<String> variantBox = new ComboBox<>(
+            FXCollections.observableArrayList("Round", SQUARE_LABEL, "Soft")
+        );
         variantBox.setValue("Round");
         variantBox.setOnAction(event -> {
             if (brushTool == null) {
@@ -196,7 +207,7 @@ public class AppShell extends Application {
             }
             String selected = variantBox.getValue();
             switch (selected) {
-                case "Square":
+                case SQUARE_LABEL:
                     brushTool.setBrushVariant(BrushTool.BrushVariant.SQUARE);
                     break;
                 case "Soft":
@@ -209,6 +220,37 @@ public class AppShell extends Application {
         });
 
         panel.getChildren().addAll(settingsTitle, colorPicker, sizeLabel, sizeSlider, variantLabel, variantBox);
+        return panel;
+    }
+
+    private VBox createSelectionToolPanel(){
+        VBox panel = new VBox(10);
+        panel.setPadding(new Insets(10));
+        panel.setStyle(
+            "-fx-background-color: #f3f4f6; " +
+            "-fx-border-color: #d1d5db; " +
+            "-fx-border-radius: 8; " +
+            "-fx-background-radius: 8;"
+        );
+
+        Label variantLabel = new Label("Variant");
+        variantLabel.setStyle(SMALL_LABEL_STYLE);
+
+        ComboBox<String> variantBox = new ComboBox<>(
+            FXCollections.observableArrayList(FREE_SELECTION_LABEL, SQUARE_LABEL)
+        );
+        variantBox.setValue(FREE_SELECTION_LABEL);
+        variantBox.setOnAction(event -> {
+            if (selectionTool == null) {
+                return;
+            }
+            SelectionTool.SelectionVariant variant = FREE_SELECTION_LABEL.equals(variantBox.getValue())
+                ? SelectionTool.SelectionVariant.FREE
+                : SelectionTool.SelectionVariant.SQUARE;
+            selectionTool.setSelectionVariant(variant);
+        });
+
+        panel.getChildren().addAll(variantLabel, variantBox);
         return panel;
     }
 
@@ -320,7 +362,11 @@ public class AppShell extends Application {
         context.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         brushTool = new BrushTool(context);
 
-        StackPane canvasFrame = new StackPane(canvas);
+        Canvas selectionCanvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+        selectionCanvas.setMouseTransparent(true);
+        selectionTool = new SelectionTool(selectionCanvas.getGraphicsContext2D(), CANVAS_WIDTH, CANVAS_HEIGHT);
+
+        StackPane canvasFrame = new StackPane(canvas, selectionCanvas);
         //canvasFrame.setPadding(new Insets(10));
         canvasFrame.setMaxSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
         canvasFrame.setStyle(
@@ -337,7 +383,7 @@ public class AppShell extends Application {
         drawingArea.setClip(viewportClip);
 
         HandTool handTool = new HandTool(canvasFrame, drawingArea, CANVAS_WIDTH, CANVAS_HEIGHT);
-        mouseListener = new MouseListener(brushTool, handTool);
+        mouseListener = new MouseListener(brushTool, handTool, selectionTool);
         mouseListener.register(canvas, drawingArea);
 
         drawingArea.getChildren().add(canvasFrame);

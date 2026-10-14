@@ -14,6 +14,7 @@ The purpose of this project is to do the following.
 ### Implemented
 - RGBA Color selection.
 - Zoom in and out, movement with the mouse.
+- Rectangular marquee selection with free-size and square variants.
 
 ### Planned
 - **Free-Form Selection**: You can select a specific part, without using the default rectangle.

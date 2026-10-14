@@ -2,6 +2,7 @@ package myPaint.controls;
 
 import myPaint.userTools.BrushTool;
 import myPaint.userTools.HandTool;
+import myPaint.userTools.SelectionTool;
 import myPaint.utils.ToolType;
 
 import javafx.scene.canvas.Canvas;
@@ -22,19 +23,22 @@ public class MouseListener {
 
 	private final BrushTool brushTool;
 	private final HandTool handTool;
+	private final SelectionTool selectionTool;
 	private ToolType activeTool = ToolType.NONE;
 	private double lastX;
 	private double lastY;
 
-	public MouseListener(BrushTool brushTool, HandTool handTool) {
+	public MouseListener(BrushTool brushTool, HandTool handTool, SelectionTool selectionTool) {
 		this.brushTool = brushTool;
 		this.handTool = handTool;
+		this.selectionTool= selectionTool;
 	}
 
 	// Registers the mouse event handlers for the canvas and viewport
 	public void register(Canvas canvas, Region viewport) {
 		canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, this::onCanvasPressed);
 		canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::onCanvasDragged);
+		canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, this::onCanvasReleased);
 		viewport.addEventHandler(MouseEvent.MOUSE_PRESSED, this::onViewportPressed);
 		viewport.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::onViewportDragged);
 		viewport.addEventHandler(ScrollEvent.SCROLL, this::onScroll);
@@ -51,22 +55,31 @@ public class MouseListener {
 			lastX = event.getX();
 			lastY = event.getY();
 			brushTool.startStroke(lastX, lastY);
+		} else if (activeTool == ToolType.SELECT && event.getButton() == MouseButton.PRIMARY) {
+			selectionTool.startSelection(event.getX(), event.getY());
 		}
 	}
 
-	
 	private void onCanvasDragged(MouseEvent event) {
-		// if the active tool is not the brush or the primary mouse button is not pressed, do nothing
-		if (activeTool != ToolType.BRUSH || !event.isPrimaryButtonDown()) {
+		if (!event.isPrimaryButtonDown()) {
 			return;
 		}
 
 		double currentX = event.getX();
 		double currentY = event.getY();
-		brushTool.drawTo(lastX, lastY, currentX, currentY);
+		if (activeTool == ToolType.BRUSH) {
+			brushTool.drawTo(lastX, lastY, currentX, currentY);
+			lastX = currentX;
+			lastY = currentY;
+		} else if (activeTool == ToolType.SELECT) {
+			selectionTool.updateSelection(currentX, currentY);
+		}
+	}
 
-		lastX = currentX;
-		lastY = currentY;
+	private void onCanvasReleased(MouseEvent event) {
+		if (activeTool == ToolType.SELECT && event.getButton() == MouseButton.PRIMARY) {
+			selectionTool.endSelection(event.getX(), event.getY());
+		}
 	}
 
 	private void onViewportPressed(MouseEvent event) {
