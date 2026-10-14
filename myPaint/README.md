@@ -22,7 +22,7 @@ The purpose of this project is to do the following.
 ### From Source:
 - JavaFX
 
-### Jar File / EXE File
+### Jar File
 - To make your own .jar file to the following:
 ```powershell
 $fx = "C:\Users\autz\Desktop\Tools\javafx-sdk-26.0.2\lib"
@@ -31,13 +31,16 @@ $fx = "C:\Users\autz\Desktop\Tools\javafx-sdk-26.0.2\lib"
 ```powershell
 javac --module-path $fx --add-modules javafx.controls -d out (Get-ChildItem -Recurse myPaint -Filter *.java).FullName
 ```
-2. Package, using MainClass as the entry point
+2. Package, using MainClass as the entry point. The JavaFX classes and native DLLs
+   (extracted from the `javafx-*-win.jar` files into `build\classes`) must be bundled
+   in the jar so it opens by double-clicking. Compile into `build\classes` instead of `out`:
 ```powershell
-jar --create --file Paint.jar --main-class myPaint.MainClass -C out .
+javac --release 25 --module-path $fx --add-modules javafx.controls -d build\classes (Get-ChildItem -Recurse myPaint -Filter *.java).FullName
+jar --create --file Paint.jar --main-class myPaint.MainClass -C build\classes .
 ```
-3. Run
+3. Run (or just double-click Paint.jar)
 ```powershell
-java --module-path $fx --add-modules javafx.controls -jar Paint.jar
+java -jar Paint.jar
 ```
 
 ## File Orientation
