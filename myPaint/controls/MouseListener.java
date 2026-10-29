@@ -16,7 +16,7 @@ Seperated the Brush and Hand events. The brush uses canvas-local coords, hand us
 
 Written by: AJ Utz
 Written on: 8/13/2026
-Last Update: 9/9/2026
+Last Update: 10/15/2026
 */
 
 public class MouseListener {

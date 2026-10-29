@@ -25,12 +25,12 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-
-import java.util.EnumMap;
-import java.util.Map;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
+
+import java.util.EnumMap;
+import java.util.Map;
 
 /*
 This is the Shell for the paint program. It contains:
@@ -42,7 +42,7 @@ This is the Shell for the paint program. It contains:
 
 Written by: AJ Utz
 Written on: 8/13/2026
-Last Update: 10/9/2026
+Last Update: 10/29/2026
 */
 public class AppShell extends Application {
 
@@ -51,6 +51,7 @@ public class AppShell extends Application {
     private static final String SMALL_LABEL_STYLE = "-fx-font-size: 11px; -fx-text-fill: #374151;";
     private static final String SQUARE_LABEL = "Square";
     private static final String FREE_SELECTION_LABEL = "Free";
+    private static final String RECT_SELECTION_LABLE = "Rectangle";
 
     private Stage primaryStage;
     private BrushTool brushTool;
@@ -237,7 +238,7 @@ public class AppShell extends Application {
         variantLabel.setStyle(SMALL_LABEL_STYLE);
 
         ComboBox<String> variantBox = new ComboBox<>(
-            FXCollections.observableArrayList(FREE_SELECTION_LABEL, SQUARE_LABEL)
+            FXCollections.observableArrayList(FREE_SELECTION_LABEL, RECT_SELECTION_LABLE)
         );
         variantBox.setValue(FREE_SELECTION_LABEL);
         variantBox.setOnAction(event -> {
@@ -246,7 +247,7 @@ public class AppShell extends Application {
             }
             SelectionTool.SelectionVariant variant = FREE_SELECTION_LABEL.equals(variantBox.getValue())
                 ? SelectionTool.SelectionVariant.FREE
-                : SelectionTool.SelectionVariant.SQUARE;
+                : SelectionTool.SelectionVariant.RECTANGLE;
             selectionTool.setSelectionVariant(variant);
         });
 
@@ -273,8 +274,7 @@ public class AppShell extends Application {
         showSettingsForTool(tool);
     }
 
-    // This method updates the visibility and style of the tool buttons in the sidebar, 
-    // showing only the button for the selected tool and hiding the others.
+    // This method updates the visibility and style of the tool buttons in the sidebar, showing only the button for the selected tool and hiding the others.
     private void showOnlySelectedTool(ToolType selectedTool) {
         for (Map.Entry<ToolType, Button> entry : toolButtons.entrySet()) {
             Button button = entry.getValue();
@@ -289,8 +289,7 @@ public class AppShell extends Application {
         }
     }
 
-    // This method resets the visibility and style of all tool buttons in the sidebar, 
-    // making them all visible and applying the default style.
+    // This method resets the visibility and style of all tool buttons in the sidebar, making them all visible and applying the default style.
     private void showAllToolButtons() {
         for (Button button : toolButtons.values()) {
             button.setVisible(true);
@@ -299,8 +298,7 @@ public class AppShell extends Application {
         }
     }
 
-    // This method updates the visibility of the settings panel for the selected tool,
-    // showing only the relevant settings and hiding others.
+    // This method updates the visibility of the settings panel for the selected tool, showing only the relevant settings and hiding others.
     private void showSettingsForTool(ToolType tool) {
         hideAllSettings();
         VBox toolSettings = settingsPanels.get(tool);

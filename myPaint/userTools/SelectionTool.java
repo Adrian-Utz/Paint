@@ -1,20 +1,25 @@
 package myPaint.userTools;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 
 /*
-Lets the user create a rectangular selection on the canvas.
+Lets the user select part of the canvas.
+- FREE: freehand lasso that follows the mouse path and closes when released.
+- SQUARE: free-size rectangle dragged from the start point.
 
 Written by: AJ Utz
 Written on: 8/13/2026
-Last Update: 10/14/2026
+Last Update: 10/29/2026
 */
 public class SelectionTool {
 
 	public enum SelectionVariant {
 		FREE,
-		SQUARE
+		RECTANGLE
 	}
 
 	private static final double LINE_WIDTH = 1.0;
@@ -28,6 +33,7 @@ public class SelectionTool {
 	private double startY;
 	private double currentX;
 	private double currentY;
+	private final List<double[]> lassoPoints = new ArrayList<>();
 	private boolean selecting;
 	private boolean hasSelection;
 
@@ -48,11 +54,13 @@ public class SelectionTool {
 		if (variant == null) {
 			return;
 		}
+		// A drag in progress keeps the variant it started with
 		this.currentVariant = variant;
-		if (selecting) {
-			activeSelectionVariant = variant;
-			drawSelection();
-		}
+	}
+
+	// Copy of the lasso outline, in canvas coordinates, for later move/delete features
+	public List<double[]> getLassoPoints() {
+		return new ArrayList<>(lassoPoints);
 	}
 
 	public void startSelection(double x, double y) {
@@ -61,6 +69,8 @@ public class SelectionTool {
 		startY = clamp(y, canvasHeight);
 		currentX = startX;
 		currentY = startY;
+		lassoPoints.clear();
+		lassoPoints.add(new double[] { startX, startY });
 		selecting = true;
 		hasSelection = false;
 		drawSelection();
@@ -72,6 +82,12 @@ public class SelectionTool {
 		}
 		currentX = clamp(x, canvasWidth);
 		currentY = clamp(y, canvasHeight);
+		if (activeSelectionVariant == SelectionVariant.FREE) {
+			double[] last = lassoPoints.get(lassoPoints.size() - 1);
+			if (last[0] != currentX || last[1] != currentY) {
+				lassoPoints.add(new double[] { currentX, currentY });
+			}
+		}
 		drawSelection();
 	}
 
@@ -81,8 +97,12 @@ public class SelectionTool {
 		}
 		updateSelection(x, y);
 		selecting = false;
-		hasSelection = getSelectionWidth() > 0 && getSelectionHeight() > 0;
-		if (!hasSelection) {
+		boolean validShape = activeSelectionVariant != SelectionVariant.FREE || lassoPoints.size() >= 3;
+		hasSelection = validShape && getSelectionWidth() > 0 && getSelectionHeight() > 0;
+		if (hasSelection) {
+			drawSelection();
+		} else {
+			lassoPoints.clear();
 			clearSelection();
 		}
 	}
@@ -92,20 +112,39 @@ public class SelectionTool {
 	}
 
 
+	// Bounding box of the selection (for the lasso, the box around its path)
 	public double getSelectionX() {
-		return Math.min(startX, selectionEndX());
+		return activeSelectionVariant == SelectionVariant.FREE ? lassoBounds()[0] : Math.min(startX, selectionEndX());
 	}
 
 	public double getSelectionY() {
-		return Math.min(startY, selectionEndY());
+		return activeSelectionVariant == SelectionVariant.FREE ? lassoBounds()[1] : Math.min(startY, selectionEndY());
 	}
 
 	public double getSelectionWidth() {
-		return Math.abs(selectionEndX() - startX);
+		return activeSelectionVariant == SelectionVariant.FREE ? lassoBounds()[2] : Math.abs(selectionEndX() - startX);
 	}
 
 	public double getSelectionHeight() {
-		return Math.abs(selectionEndY() - startY);
+		return activeSelectionVariant == SelectionVariant.FREE ? lassoBounds()[3] : Math.abs(selectionEndY() - startY);
+	}
+
+	// Returns {x, y, width, height} of the lasso path
+	private double[] lassoBounds() {
+		double minX = Double.MAX_VALUE;
+		double minY = Double.MAX_VALUE;
+		double maxX = 0;
+		double maxY = 0;
+		for (double[] p : lassoPoints) {
+			minX = Math.min(minX, p[0]);
+			minY = Math.min(minY, p[1]);
+			maxX = Math.max(maxX, p[0]);
+			maxY = Math.max(maxY, p[1]);
+		}
+		if (lassoPoints.isEmpty()) {
+			return new double[] { 0, 0, 0, 0 };
+		}
+		return new double[] { minX, minY, maxX - minX, maxY - minY };
 	}
 
 	private void applySelectionStyle() {
@@ -117,6 +156,11 @@ public class SelectionTool {
 	private void drawSelection() {
 		context.clearRect(0, 0, canvasWidth, canvasHeight);
 		applySelectionStyle();
+
+		if (activeSelectionVariant == SelectionVariant.FREE) {
+			drawLasso();
+			return;
+		}
 
 		double x1 = startX;
 		double y1 = startY;
@@ -131,6 +175,23 @@ public class SelectionTool {
 				Math.max(0, width - LINE_WIDTH), Math.max(0, height - LINE_WIDTH));
 	}
 
+	// Outline follows the mouse path; once the drag ends it is closed back to the start point
+	private void drawLasso() {
+		int count = lassoPoints.size();
+		if (count < 2) {
+			return;
+		}
+		context.beginPath();
+		context.moveTo(lassoPoints.get(0)[0], lassoPoints.get(0)[1]);
+		for (int i = 1; i < count; i++) {
+			context.lineTo(lassoPoints.get(i)[0], lassoPoints.get(i)[1]);
+		}
+		if (!selecting) {
+			context.closePath();
+		}
+		context.stroke();
+	}
+
     //Reset Selection
 	private void clearSelection() {
 		context.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -142,39 +203,10 @@ public class SelectionTool {
 
 	//Return the last known X and Y values 
 	private double selectionEndX() {
-		if (activeSelectionVariant != SelectionVariant.SQUARE) {
-			return currentX;
-		}
-		return startX + squareSide() * directionX();
+		return currentX;
 	}
 
 	private double selectionEndY() {
-		if (activeSelectionVariant != SelectionVariant.SQUARE) {
-			return currentY;
-		}
-		return startY + squareSide() * directionY();
-	}
-
-	private double squareSide() {
-		double side = Math.max(Math.abs(currentX - startX), Math.abs(currentY - startY));
-		double availableWidth = directionX() > 0 ? canvasWidth - startX : startX;
-		double availableHeight = directionY() > 0 ? canvasHeight - startY : startY;
-		return Math.min(side, Math.min(availableWidth, availableHeight));
-	}
-
-	private double directionX() {
-		double delta = currentX - startX;
-		if (delta == 0) {
-			return startX <= canvasWidth - startX ? 1 : -1;
-		}
-		return Math.signum(delta);
-	}
-
-	private double directionY() {
-		double delta = currentY - startY;
-		if (delta == 0) {
-			return startY <= canvasHeight - startY ? 1 : -1;
-		}
-		return Math.signum(delta);
+		return currentY;
 	}
 }
