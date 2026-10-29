@@ -9,7 +9,7 @@ import javafx.scene.paint.Color;
 /*
 Lets the user select part of the canvas.
 - FREE: freehand lasso that follows the mouse path and closes when released.
-- SQUARE: free-size rectangle dragged from the start point.
+- RECTANGLE: free-size rectangle dragged from the start point.
 
 Written by: AJ Utz
 Written on: 8/13/2026
