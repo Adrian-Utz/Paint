@@ -257,6 +257,10 @@ public class AppShell extends Application {
 
     //Shared method handles button behavior. Only one button active at a time, info bar shows enum name.
     private void selectTool(ToolType tool) {
+        // Apply any moved/resized selection before the tool changes
+        if (selectionTool != null) {
+            selectionTool.commit();
+        }
         if (activeTool == tool) {
             activeTool = ToolType.NONE;
             mouseListener.setActiveTool(activeTool);
@@ -362,7 +366,7 @@ public class AppShell extends Application {
 
         Canvas selectionCanvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
         selectionCanvas.setMouseTransparent(true);
-        selectionTool = new SelectionTool(selectionCanvas.getGraphicsContext2D(), CANVAS_WIDTH, CANVAS_HEIGHT);
+        selectionTool = new SelectionTool(selectionCanvas.getGraphicsContext2D(), canvas, CANVAS_WIDTH, CANVAS_HEIGHT);
 
         StackPane canvasFrame = new StackPane(canvas, selectionCanvas);
         //canvasFrame.setPadding(new Insets(10));

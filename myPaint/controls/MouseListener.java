@@ -5,6 +5,7 @@ import myPaint.userTools.HandTool;
 import myPaint.userTools.SelectionTool;
 import myPaint.utils.ToolType;
 
+import javafx.scene.Cursor;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.MouseButton;
@@ -39,6 +40,7 @@ public class MouseListener {
 		canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, this::onCanvasPressed);
 		canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::onCanvasDragged);
 		canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, this::onCanvasReleased);
+		canvas.addEventHandler(MouseEvent.MOUSE_MOVED, this::onCanvasMoved);
 		viewport.addEventHandler(MouseEvent.MOUSE_PRESSED, this::onViewportPressed);
 		viewport.addEventHandler(MouseEvent.MOUSE_DRAGGED, this::onViewportDragged);
 		viewport.addEventHandler(ScrollEvent.SCROLL, this::onScroll);
@@ -56,7 +58,7 @@ public class MouseListener {
 			lastY = event.getY();
 			brushTool.startStroke(lastX, lastY);
 		} else if (activeTool == ToolType.SELECT && event.getButton() == MouseButton.PRIMARY) {
-			selectionTool.startSelection(event.getX(), event.getY());
+			selectionTool.pressed(event.getX(), event.getY());
 		}
 	}
 
@@ -72,14 +74,22 @@ public class MouseListener {
 			lastX = currentX;
 			lastY = currentY;
 		} else if (activeTool == ToolType.SELECT) {
-			selectionTool.updateSelection(currentX, currentY);
+			selectionTool.dragged(currentX, currentY);
 		}
 	}
 
 	private void onCanvasReleased(MouseEvent event) {
 		if (activeTool == ToolType.SELECT && event.getButton() == MouseButton.PRIMARY) {
-			selectionTool.endSelection(event.getX(), event.getY());
+			selectionTool.released(event.getX(), event.getY());
 		}
+	}
+
+	// Shows resize/move cursors over the selection and the default cursor for other tools
+	private void onCanvasMoved(MouseEvent event) {
+		Canvas canvas = (Canvas) event.getSource();
+		canvas.setCursor(activeTool == ToolType.SELECT
+			? selectionTool.cursorAt(event.getX(), event.getY())
+			: Cursor.DEFAULT);
 	}
 
 	private void onViewportPressed(MouseEvent event) {
